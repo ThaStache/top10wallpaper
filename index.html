@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+<meta name="theme-color" content="#F1EFF4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16131D" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-title" content="Top Ten Wall">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Top Ten Wall</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -71,13 +76,38 @@ legend{font-size:14px;color:var(--muted);margin-bottom:8px;padding:0}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
 .seg button{font:inherit;font-size:15px;font-weight:600;border:0;border-radius:999px;padding:7px 14px;cursor:pointer;background:var(--surface);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);box-shadow:none}
-select{font:inherit;font-size:15px;padding:8px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+select{font:inherit;font-size:16px;max-width:100%;padding:8px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
 label.check{display:flex;gap:8px;align-items:center;font-size:15px;margin-top:4px;cursor:pointer}
 label.check input{accent-color:var(--accent);width:18px;height:18px}
 
-.preview{border-radius:14px;overflow:hidden;box-shadow:0 24px 60px -24px rgba(20,10,40,.45);background:#000}
+.preview{border-radius:14px;overflow:hidden;box-shadow:0 24px 60px -24px rgba(20,10,40,.45);background:#0D0C10;display:flex;justify-content:center}
 .preview canvas{display:block;width:100%;height:auto}
+.preview.tall{padding:16px;background:var(--surface);box-shadow:none;border:1px solid var(--line)}
+.preview.tall canvas{width:auto;max-width:100%;max-height:72vh;border-radius:clamp(14px,3vw,28px);box-shadow:0 18px 40px -20px rgba(20,10,40,.5)}
 .savebar{margin-top:18px}
+.tip{margin:10px 0 0;font-size:15px;color:var(--muted);max-width:64ch}
+.tip[hidden]{display:none}
+@media (max-width:640px){
+  main{padding:28px 16px 64px}
+  .lede{font-size:17px}
+  h2{font-size:24px}
+  .topnav.topnav.topnav{margin-bottom:28px}
+  .topnav.topnav ul{gap:12px;flex-wrap:wrap}
+  .topnav.topnav ul a{font-size:14px}
+  .mini{display:none}
+  .hero{margin-bottom:36px}
+  .drop{padding:20px}
+  .builder{padding:18px}
+  .controls{grid-template-columns:1fr;gap:16px}
+  .savebar{position:sticky;bottom:0;z-index:5;background:var(--bg);margin:12px -16px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+  .savebar .btn{flex:1}
+  .list li{padding-right:0}
+}
+@media (pointer:coarse){
+  .btn.small{padding:9px 14px;min-height:40px}
+  .seg button{padding:9px 15px;min-height:40px}
+  label.check{min-height:36px}
+}
 
 .list{list-style:none;margin:28px 0 0;padding:0;display:grid;gap:8px;max-width:760px}
 .list li{display:grid;grid-template-columns:28px 52px 1fr auto;gap:14px;align-items:center;padding:8px 10px 8px 4px;border-bottom:1px solid var(--line)}
@@ -220,20 +250,40 @@ label.check input{accent-color:var(--accent);width:18px;height:18px}
         <button type="button" data-val="night">Night</button>
         <button type="button" data-val="paper">Paper</button>
         <button type="button" data-val="tint">Match #1</button></div></fieldset>
-      <fieldset><legend>Leave room for desktop icons</legend>
+      <fieldset><legend>Leave room for</legend>
         <select id="icons">
-          <option value="none" selected>No</option>
-          <option value="right">On the right (Mac)</option>
-          <option value="left">On the left (Windows)</option>
+          <option value="none" selected>Nothing</option>
+          <option value="right">Desktop icons on the right (Mac)</option>
+          <option value="left">Desktop icons on the left (Windows)</option>
+          <option value="clock">Clock and widgets (lock screen)</option>
         </select></fieldset>
       <fieldset><legend>Screen size</legend>
         <select id="size">
-          <option value="1920x1080">1920 × 1080 (HD)</option>
-          <option value="2560x1440" selected>2560 × 1440 (QHD)</option>
-          <option value="3840x2160">3840 × 2160 (4K)</option>
-          <option value="2880x1800">2880 × 1800 (MacBook)</option>
-          <option value="3440x1440">3440 × 1440 (Ultrawide)</option>
-          <option value="5120x2160">5120 × 2160 (Super ultrawide)</option>
+          <optgroup label="Desktop">
+            <option value="1920x1080">1920 × 1080 (HD)</option>
+            <option value="2560x1440" selected>2560 × 1440 (QHD)</option>
+            <option value="3840x2160">3840 × 2160 (4K)</option>
+            <option value="2880x1800">2880 × 1800 (MacBook)</option>
+            <option value="3440x1440">3440 × 1440 (Ultrawide)</option>
+            <option value="5120x2160">5120 × 2160 (Super ultrawide)</option>
+          </optgroup>
+          <optgroup label="iPhone">
+            <option value="1320x2868">iPhone 16 Pro Max, 17 Pro Max</option>
+            <option value="1290x2796">iPhone 16 Plus, 15 Plus, 15 Pro Max</option>
+            <option value="1260x2736">iPhone Air</option>
+            <option value="1206x2622">iPhone 17, 17 Pro, 16 Pro</option>
+            <option value="1179x2556">iPhone 16, 15, 15 Pro</option>
+            <option value="1170x2532">iPhone 14, 13, 12</option>
+            <option value="750x1334">iPhone SE</option>
+          </optgroup>
+          <optgroup label="iPad">
+            <option value="2752x2752">iPad, any orientation (square)</option>
+            <option value="2064x2752">iPad Pro 13-inch</option>
+            <option value="1668x2420">iPad Pro 11-inch</option>
+            <option value="2048x2732">iPad Air 13-inch</option>
+            <option value="1640x2360">iPad Air 11-inch, iPad</option>
+            <option value="1488x2266">iPad mini</option>
+          </optgroup>
         </select></fieldset>
       <fieldset><legend>Text</legend>
         <label class="check"><input type="checkbox" id="labels" checked> Album names under covers</label>
@@ -242,6 +292,7 @@ label.check input{accent-color:var(--accent);width:18px;height:18px}
     </div>
 
     <div class="preview"><canvas id="canvas" aria-label="Wallpaper preview"></canvas></div>
+    <p class="tip" id="phoneTip" hidden>To use it: save the image, open it in Photos, tap Share, then <b>Use as Wallpaper</b>. Choosing <b>Clock and widgets</b> above keeps your albums clear of the time.</p>
     <div class="row savebar">
       <button class="btn" id="save" type="button">Save wallpaper</button>
       <button class="btn ghost" id="exportEx" type="button" hidden>Export for examples page</button>
@@ -529,7 +580,27 @@ function syncSeg(){
 }
 document.querySelectorAll('.seg[data-key]').forEach(g=>g.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return; S[g.dataset.key]=b.dataset.val; syncSeg(); render(); }));
-$('#size').onchange=e=>{ S.size=e.target.value; render(); };
+const isMobileSize=()=>{ const [w,h]=S.size.split('x').map(Number); return h>=w; };
+function setSize(v){
+  const wasMobile=isMobileSize(); S.size=v; const nowMobile=isMobileSize();
+  if(nowMobile&&!wasMobile&&S.icons!=='clock'){ S.icons='clock'; $('#icons').value='clock'; }
+  if(!nowMobile&&wasMobile&&S.icons==='clock'){ S.icons='none'; $('#icons').value='none'; }
+  $('#phoneTip').hidden=!nowMobile;
+  $('.preview').classList.toggle('tall',nowMobile);
+  render();
+}
+$('#size').onchange=e=>setSize(e.target.value);
+// On an iPhone or iPad, start with a wallpaper sized for this screen.
+setTimeout(function(){
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(!ios) return;
+  const d=window.devicePixelRatio||1, w=Math.round(Math.min(screen.width,screen.height)*d), h=Math.round(Math.max(screen.width,screen.height)*d);
+  const opts=[...$('#size').options].map(o=>o.value).filter(v=>{ const [a,b]=v.split('x').map(Number); return b>a; });
+  let best=null,bd=1e9; for(const v of opts){ const [a,b]=v.split('x').map(Number); const dd=Math.abs(a-w)+Math.abs(b-h); if(dd<bd){ bd=dd; best=v; } }
+  if(best&&bd<200){ $('#size').value=best; setSize(best); }
+  else { const o=document.createElement('option'); o.value=`${w}x${h}`; o.textContent=`This device (${w} × ${h})`;
+    $('#size').prepend(o); $('#size').value=o.value; setSize(o.value); }
+},0);
 $('#icons').onchange=e=>{ S.icons=e.target.value; render(); };
 $('#shuffle').onclick=()=>{ S.seed=(Math.random()*1e9)|0; render(); };
 $('#labels').onchange=e=>{ S.labels=e.target.checked; render(); };
@@ -699,9 +770,11 @@ function draw(){
   if(!top.length){ ctx.fillStyle=muted; ctx.font=`600 ${H*0.03}px ${FONT}`; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('No albums for this period',W/2,H/2); ctx.textAlign='left'; return; }
 
-  const headH=S.heading?H*0.11:0;
+  const headH=S.heading?Math.min(H*0.11,W*0.075):0;
   const iconL=S.icons==='left'?W*0.11:0, iconR=S.icons==='right'?W*0.11:0;
-  const box={x:W*0.07+iconL, y:H*0.09+headH, w:W*0.86-iconL-iconR, h:H*0.82-headH};
+  const clockT=S.icons==='clock'?H*(H>W*1.2?0.25:0.2):0, clockB=S.icons==='clock'?H*0.08:0;
+  const box={x:W*0.07+iconL, y:H*0.09+headH+clockT, w:W*0.86-iconL-iconR, h:H*0.82-headH-clockT-clockB};
+  const portrait=box.h>box.w*1.1;
   const availW=box.w, availH=box.h;
   const gapR=0.09;
   const n=top.length;
@@ -718,11 +791,30 @@ function draw(){
   let seed=S.seed>>>0; const rnd=()=>{ seed=(seed+0x6D2B79F5)>>>0; let t=seed; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; };
 
   if(S.layout==='grid'){
-    const cols=5, rows=2, labR=S.labels?0.27:0;
-    const s=Math.min(availW/(cols+(cols-1)*gapR), availH/(rows*(1+labR)+(rows-1)*gapR));
+    const labR=S.labels?0.27:0;
+    let cols=5, rows=2, s=0;
+    for(const [c,rw] of [[5,2],[4,3],[3,4],[2,5]]){ if(c*rw<n && c*rw<10) continue;
+      const t=Math.min(availW/(c+(c-1)*gapR), availH/(rw*(1+labR)+(rw-1)*gapR)); if(t>s*1.02){ s=t; cols=c; rows=rw; } }
+    rows=Math.ceil(n/cols);
     const gap=s*gapR; blockW=cols*s+(cols-1)*gap; blockH=rows*s*(1+labR)+(rows-1)*gap;
-    place=(x0,y0)=>top.forEach((r,i)=>{ const x=x0+(i%cols)*(s+gap), y=y0+Math.floor(i/cols)*(s*(1+labR)+gap);
+    place=(x0,y0)=>top.forEach((r,i)=>{ const row=Math.floor(i/cols), inRow=Math.min(cols,n-row*cols);
+      const x=x0+(cols-inRow)*(s+gap)/2+(i%cols)*(s+gap), y=y0+row*(s*(1+labR)+gap);
       drawTile(r,x,y,s,true); if(S.labels) label(r,i,x,y,s); });
+  } else if(S.layout==='feature' && portrait){
+    const labR=S.labels?0.55:0;
+    const s=Math.min(availW/(3+2*gapR), availH/(6+4*gapR+1.6*gapR+labR));
+    const gap=s*gapR, big=3*s+2*gap, mid=gap*1.6, lab=S.labels?s*labR:0;
+    blockW=big; blockH=big+lab+mid+big;
+    place=(x0,y0)=>{
+      drawTile(top[0],x0,y0,big,true);
+      if(S.labels){ ctx.textBaseline='top'; ctx.textAlign='left'; ctx.fillStyle=ink; ctx.font=`800 ${s*0.2}px ${FONT}`;
+        ctx.fillText(fit(top[0].album,big),x0,y0+big+s*0.1);
+        ctx.fillStyle=muted; ctx.font=`400 ${s*0.13}px ${FONT}`;
+        if(top[0].artist) ctx.fillText(fit(top[0].artist,big),x0,y0+big+s*0.36); }
+      const gy=y0+big+lab+mid;
+      top.slice(1).forEach((r,i)=>{ const x=x0+(i%3)*(s+gap), y=gy+Math.floor(i/3)*(s+gap);
+        drawTile(r,x,y,s,true); badge(i+2,x,y,s); });
+    };
   } else if(S.layout==='feature'){
     const labR=S.labels?0.55:0;
     const s=Math.min(availW/(6+4*gapR+1.6*gapR), availH/(3+2*gapR+labR));
@@ -763,7 +855,7 @@ function draw(){
     top.forEach((r,i)=>{ const s=s0*(1.12-i*0.025), h=s*(1+labR);
       let best=null, bestD=-1;
       for(let t=0;t<60;t++){ const cx=box.x+s/2+rnd()*(box.w-s), cy=box.y+h/2+rnd()*(box.h-h);
-        const d=items.length?Math.min(...items.map(o=>Math.hypot((o.cx-cx)/box.w*1.6,(o.cy-cy)/box.h))):1;
+        const d=items.length?Math.min(...items.map(o=>Math.hypot(o.cx-cx,o.cy-cy))):1e9;
         if(d>bestD){ bestD=d; best={cx,cy}; } }
       items.push({...best,s,h,i,rot:(rnd()-0.5)*0.3}); });
     place=()=>[...items].reverse().forEach(o=>{ ctx.save(); ctx.translate(o.cx,o.cy); ctx.rotate(o.rot);
@@ -786,17 +878,20 @@ function draw(){
       if(S.labels) label(top[rc.i],rc.i,rc.x,rc.y,rc.s); else if(rc.i) badge(rc.i+1,rc.x,rc.y,rc.s); });
   } else {
     // cascade: a receding stack of records, with the list beside it
-    const listW=S.labels?box.w*0.3:0, areaW=box.w-listW-(S.labels?box.w*0.04:0);
+    const below=portrait&&S.labels;
+    const listW=S.labels?(below?box.w:box.w*0.3):0, areaW=below?box.w:box.w-listW-(S.labels?box.w*0.04:0);
+    const areaH=below?box.h*0.42:box.h;
     const shrink=0.07, step=0.33;
     let span=0, f=1; for(let i=1;i<n;i++){ span+=f*step; f*=1-shrink; } 
-    const s0=Math.min(areaW/(1+span), box.h*0.92);
-    const used=s0*(1+span), ox=box.x+(S.labels?0:(box.w-used)/2), base=box.y+(box.h+s0)/2;
+    const s0=Math.min(areaW/(1+span), areaH*0.92);
+    const used=s0*(1+span), ox=box.x+((S.labels&&!below)?0:(box.w-used)/2), base=box.y+(below?(areaH+s0)/2:(box.h+s0)/2);
     const tiles=[]; let x=ox, sz=s0;
     for(let i=0;i<n;i++){ tiles.push({i,x,y:base-sz-(s0-sz)*0.55,s:sz}); x+=sz*step; sz*=1-shrink; }
     place=()=>{
       [...tiles].reverse().forEach(t=>{ drawTile(top[t.i],t.x,t.y,t.s,true); if(t.i) badge(t.i+1,t.x,t.y,t.s); });
       if(S.labels){
-        const lx=box.x+box.w-listW, lineH=Math.min(box.h/n, s0*0.2), fs=lineH*0.42, ly=box.y+(box.h-lineH*n)/2;
+        const lTop=below?box.y+areaH+box.h*0.05:box.y, lH=below?box.h-areaH-box.h*0.05:box.h;
+        const lx=below?box.x:box.x+box.w-listW, lineH=Math.min(lH/n, below?box.w*0.1:s0*0.2), fs=lineH*0.42, ly=lTop+(lH-lineH*n)/2;
         top.forEach((r,i)=>{ const y=ly+i*lineH; ctx.textBaseline='top'; ctx.textAlign='left';
           ctx.fillStyle=muted; ctx.font=`800 ${fs}px ${FONT}`; ctx.fillText(String(i+1),lx,y);
           ctx.fillStyle=ink; ctx.font=`600 ${fs}px ${FONT}`; ctx.fillText(fit(r.album,listW-fs*1.8),lx+fs*1.8,y);
@@ -816,20 +911,32 @@ function draw(){
     ctx.fillText(S.manual?'top albums':S.metric==='plays'?'most played albums':'albums by time listened',hx+pw+headH*0.2,hy-headH*0.32);
   }
   place(x0,y0);
+  prepBlob();
 }
+let blobTimer=0, readyBlob=null;
+function prepBlob(){ readyBlob=null; clearTimeout(blobTimer); blobTimer=setTimeout(()=>canvas.toBlob(b=>{ readyBlob=b; },'image/png'),350); }
 
 /* ---------- save ---------- */
 $('#save').onclick=async()=>{
   const note=$('#saveNote'); note.textContent='';
-  const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
-  const name=`top-10-albums-${S.period==='all'?'all-time':S.period}-${S.size}.png`;
+  const name=`top-10-albums-${S.manual?'my-list':S.period==='all'?'all-time':S.period}-${S.size}.png`;
+  const blob=readyBlob||await new Promise(r=>canvas.toBlob(r,'image/png'));
   if(downloads){
     try{ await downloads.save({filename:name,data:blob}); note.textContent='Saved.'; }
-    catch(e){ note.textContent = e&&e.code==='declined' ? 'Save canceled.' : e&&e.code==='rate_limited' ? 'A save prompt is already open.' : "Saving isn't available here. Right-click or long-press the preview to save it."; }
-  } else {
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
-    note.textContent='Download started. If nothing happened, right-click or long-press the preview to save it.';
+    catch(e){ note.textContent = e&&e.code==='declined' ? 'Save canceled.' : e&&e.code==='rate_limited' ? 'A save prompt is already open.' : "Saving isn't available here. Press and hold the preview to save it."; }
+    return;
   }
+  // iPhone and iPad: the share sheet offers Save Image, which puts it straight into Photos.
+  const touch=matchMedia('(pointer:coarse)').matches;
+  if(touch && navigator.canShare){
+    const file=new File([blob],name,{type:'image/png'});
+    if(navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file]}); note.textContent='Tap Save Image to add it to Photos.'; return; }
+      catch(e){ if(e&&e.name==='AbortError'){ note.textContent=''; return; } }
+    }
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  note.textContent=touch?'If nothing happened, press and hold the preview and choose Save to Photos.':'Download started. If nothing happened, right-click the preview to save it.';
 };
 
 /* ---------- owner tool: export data for examples.html (open the site with ?export) ---------- */
