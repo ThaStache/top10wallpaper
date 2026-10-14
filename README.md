@@ -1,6 +1,6 @@
 # Top Ten Wall
 
-Turn your Apple Music listening history into a desktop wallpaper of your 10 most played albums, for any year or all time. It's a static site with no server, no database, and no API keys, so it runs free on GitHub Pages.
+Turn your Apple Music listening history into a desktop wallpaper of your 10 most played albums, for any year or all time. Visitors can start three ways: drop the Music app's Library.xml (instant, all time), drop Apple's privacy export (a few days, year by year), or search for albums and build their own list (instant, any service). It's a static site with no server, no database, and no API keys, so it runs free on GitHub Pages.
 
 ## What's in this repo
 
