@@ -190,7 +190,7 @@ function draw(ex,canvas){
     const rad=s*0.03; ctx.save(); ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=s*0.08; ctx.shadowOffsetY=s*0.03;
     rr(x,y,s,s,rad); ctx.fillStyle='#222'; ctx.fill(); ctx.restore();
     ctx.save(); rr(x,y,s,s,rad); ctx.clip(); const img=covers.get(r.key);
-    if(img){ const sc=Math.max(s/img.width,s/img.height); const w=img.width*sc,h=img.height*sc; ctx.drawImage(img,x+(s-w)/2,y+(s-h)/2,w,h); }
+    if(img){ ctx.imageSmoothingQuality='high'; const sc=Math.max(s/img.width,s/img.height); const w=img.width*sc,h=img.height*sc; ctx.drawImage(img,x+(s-w)/2,y+(s-h)/2,w,h); }
     else { const [a,b]=hues(r.key); const g=ctx.createLinearGradient(x,y,x+s,y+s); g.addColorStop(0,`hsl(${a} 64% 56%)`); g.addColorStop(1,`hsl(${b} 58% 26%)`);
       ctx.fillStyle=g; ctx.fillRect(x,y,s,s); const cx=x+s*0.8, cy=y+s*0.8, R=s*0.46;
       ctx.fillStyle='rgba(10,8,16,.32)'; ctx.beginPath(); ctx.arc(cx,cy,R,0,7); ctx.fill();
@@ -245,11 +245,11 @@ async function lookup(r){
   const album=clean(r.album), na=norm(album), nar=norm(r.artist);
   try{ const d=await (await fetch('https://itunes.apple.com/search?media=music&entity=album&limit=8&term='+encodeURIComponent((r.artist?r.artist+' ':'')+album))).json();
     const res=d.results||[]; const best=res.find(x=>norm(x.collectionName).includes(na)&&(!nar||norm(x.artistName).includes(nar.split(' ')[0])))||(nar?null:res.find(x=>norm(x.collectionName).includes(na)));
-    if(best&&best.artworkUrl100) return await loadImg(best.artworkUrl100.replace(/\/\d+x\d+bb\./,'/1400x1400bb.')); }catch(_){}
+    if(best&&best.artworkUrl100) return await loadImg(best.artworkUrl100.replace(/\/\d+x\d+bb\./,'/2400x2400bb.')); }catch(_){}
   try{ await new Promise(t=>setTimeout(t,1100));
     const q=`releasegroup:"${album.replace(/"/g,'')}"`+(r.artist?` AND artist:"${r.artist.replace(/"/g,'')}"`:'');
     const j=await (await fetch('https://musicbrainz.org/ws/2/release-group/?fmt=json&limit=1&query='+encodeURIComponent(q))).json();
-    const id=j['release-groups']&&j['release-groups'][0]&&j['release-groups'][0].id; if(id) return await loadImg(`https://coverartarchive.org/release-group/${id}/front-500`); }catch(_){}
+    const id=j['release-groups']&&j['release-groups'][0]&&j['release-groups'][0].id; if(id) return await loadImg(`https://coverartarchive.org/release-group/${id}/front-1200`); }catch(_){}
   return null;
 }
 async function loadCovers(){

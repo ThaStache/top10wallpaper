@@ -210,11 +210,22 @@ label.check input{accent-color:var(--accent);width:18px;height:18px}
         <button type="button" data-val="minutes">Time listened</button></div></fieldset>
       <fieldset><legend>Layout</legend><div class="seg" data-key="layout">
         <button type="button" data-val="grid">Grid</button>
-        <button type="button" data-val="feature">Number one big</button></div></fieldset>
+        <button type="button" data-val="feature">Number one big</button>
+        <button type="button" data-val="sized">Sized by listens</button>
+        <button type="button" data-val="scatter">Scattered</button>
+        <button type="button" data-val="orbit">Orbit</button>
+        <button type="button" data-val="cascade">Cascade</button></div>
+        <button class="btn ghost small" id="shuffle" type="button" hidden style="margin-top:8px">Shuffle positions</button></fieldset>
       <fieldset><legend>Background</legend><div class="seg" data-key="bg">
         <button type="button" data-val="night">Night</button>
         <button type="button" data-val="paper">Paper</button>
         <button type="button" data-val="tint">Match #1</button></div></fieldset>
+      <fieldset><legend>Leave room for desktop icons</legend>
+        <select id="icons">
+          <option value="none" selected>No</option>
+          <option value="right">On the right (Mac)</option>
+          <option value="left">On the left (Windows)</option>
+        </select></fieldset>
       <fieldset><legend>Screen size</legend>
         <select id="size">
           <option value="1920x1080">1920 × 1080 (HD)</option>
@@ -252,7 +263,7 @@ label.check input{accent-color:var(--accent);width:18px;height:18px}
 const $ = s => document.querySelector(s);
 const S = { data:null, period:'all', metric:'plays', layout:'grid', bg:'night', size:'2560x1440',
   labels:true, heading:true, hidden:new Set(), covers:new Map(),
-  auto:new Map(), tried:new Set(), net:'unknown', findArt:true, sample:false, manual:false, manualTitle:'My top 10' };
+  auto:new Map(), tried:new Set(), net:'unknown', findArt:true, sample:false, manual:false, manualTitle:'My top 10', icons:'none', seed:(Math.random()*1e9)|0 };
 const coverFor = key => S.covers.get(key) || (S.findArt ? S.auto.get(key) : null);
 let downloads = null;
 if (window.claude && typeof window.claude.use === 'function') {
@@ -488,7 +499,7 @@ $('#bMake').onclick=()=>{
     agg.all.set(r.key,{key:r.key,album:r.album,artist:r.artist,plays:picks.length-i,ms:0});
     if(r.art && !S.covers.has(r.key) && !S.auto.has(r.key)){
       S.tried.add(r.key);
-      loadImg(r.art.replace(/\/\d+x\d+bb\./,'/1400x1400bb.')).then(img=>{ S.auto.set(r.key,img); render(); })
+      loadArt(r.key,itunesTpl(r.art)).then(img=>{ S.auto.set(r.key,img); render(); })
         .catch(()=>{ S.tried.delete(r.key); render(); });
     }
   });
@@ -519,6 +530,8 @@ function syncSeg(){
 document.querySelectorAll('.seg[data-key]').forEach(g=>g.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return; S[g.dataset.key]=b.dataset.val; syncSeg(); render(); }));
 $('#size').onchange=e=>{ S.size=e.target.value; render(); };
+$('#icons').onchange=e=>{ S.icons=e.target.value; render(); };
+$('#shuffle').onclick=()=>{ S.seed=(Math.random()*1e9)|0; render(); };
 $('#labels').onchange=e=>{ S.labels=e.target.checked; render(); };
 $('#heading').onchange=e=>{ S.heading=e.target.checked; render(); };
 $('#findart').onchange=e=>{ S.findArt=e.target.checked; render(); };
@@ -560,6 +573,16 @@ function renderList(top){
 }
 
 /* ---------- album art lookup ---------- */
+// Pick artwork resolution from the wallpaper size, and upgrade covers when a bigger size is chosen.
+const artRes=()=>{ const m=Math.max(...S.size.split('x').map(Number)); return m>=5000?3000:m>=3800?2400:1500; };
+const artTpl=new Map(); // key -> {tpl, res}
+const itunesTpl=u=>u.replace(/\/\d+x\d+bb\./,'/{s}x{s}bb.');
+async function loadArt(key,tpl){ const res=artRes(); const img=await loadImg(tpl.replace(/\{s\}/g,res)); artTpl.set(key,{tpl,res}); return img; }
+function upgradeArt(){
+  const want=artRes();
+  for(const [key,a] of artTpl){ if(a.res>=want||a.busy||!S.auto.has(key)) continue;
+    a.busy=true; loadImg(a.tpl.replace(/\{s\}/g,want)).then(img=>{ S.auto.set(key,img); a.res=want; render(); }).catch(()=>{}).finally(()=>{ a.busy=false; }); }
+}
 function loadImg(u){ return new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous';
   i.onload=()=>res(i); i.onerror=()=>rej(new Error('img')); i.src=u; }); }
 function blockedErr(){ const e=new Error('blocked'); e.blocked=true; return e; }
@@ -582,13 +605,13 @@ async function lookupArt(r){
   const res=(d&&d.results)||[];
   const best=res.find(x=>norm(x.collectionName).includes(na)&&(!nar||norm(x.artistName).includes(nar.split(' ')[0])))
     || (nar?null:res.find(x=>norm(x.collectionName).includes(na)));
-  if(best&&best.artworkUrl100){ try{ return await loadImg(best.artworkUrl100.replace(/\/\d+x\d+bb\./,'/1400x1400bb.')); }catch(_){} }
+  if(best&&best.artworkUrl100){ try{ return await loadArt(r.key,itunesTpl(best.artworkUrl100)); }catch(_){} }
   try{
     await new Promise(t=>setTimeout(t,1100));
     const q=`releasegroup:"${album.replace(/"/g,'')}"`+(r.artist?` AND artist:"${r.artist.replace(/"/g,'')}"`:'');
     const j=await (await fetch('https://musicbrainz.org/ws/2/release-group/?fmt=json&limit=1&query='+encodeURIComponent(q))).json();
     const id=j['release-groups']&&j['release-groups'][0]&&j['release-groups'][0].id;
-    if(id) return await loadImg(`https://coverartarchive.org/release-group/${id}/front-500`);
+    if(id) return await loadImg(`https://coverartarchive.org/release-group/${id}/front-1200`);
   }catch(_){}
   return null;
 }
@@ -634,7 +657,7 @@ function drawTile(r,x,y,s,showTitle){
   rr(x,y,s,s,rad); ctx.fillStyle='#222'; ctx.fill(); ctx.restore();
   ctx.save(); rr(x,y,s,s,rad); ctx.clip();
   const img=coverFor(r.key);
-  if(img){ const sc=Math.max(s/img.width,s/img.height); const w=img.width*sc,h=img.height*sc; ctx.drawImage(img,x+(s-w)/2,y+(s-h)/2,w,h); }
+  if(img){ ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high'; const sc=Math.max(s/img.width,s/img.height); const w=img.width*sc,h=img.height*sc; ctx.drawImage(img,x+(s-w)/2,y+(s-h)/2,w,h); }
   else{
     const [a,b]=hues(r.key);
     const g=ctx.createLinearGradient(x,y,x+s,y+s); g.addColorStop(0,`hsl(${a} 64% 56%)`); g.addColorStop(1,`hsl(${b} 58% 26%)`);
@@ -655,7 +678,7 @@ function drawTile(r,x,y,s,showTitle){
 const FONT='"Bricolage Grotesque", system-ui, sans-serif';
 
 function draw(){
-  const top=ranked(); renderList(top); findArt();
+  const top=ranked(); renderList(top); findArt(); upgradeArt();
   const [W,H]=S.size.split('x').map(Number); canvas.width=W; canvas.height=H;
 
   let bg, ink, muted;
@@ -677,25 +700,30 @@ function draw(){
     ctx.fillText('No albums for this period',W/2,H/2); ctx.textAlign='left'; return; }
 
   const headH=S.heading?H*0.11:0;
-  const availW=W*0.86, availH=H*0.82-headH;
+  const iconL=S.icons==='left'?W*0.11:0, iconR=S.icons==='right'?W*0.11:0;
+  const box={x:W*0.07+iconL, y:H*0.09+headH, w:W*0.86-iconL-iconR, h:H*0.82-headH};
+  const availW=box.w, availH=box.h;
   const gapR=0.09;
-  let blockW, blockH, place;
+  const n=top.length;
+  const val=r=>(S.manual||S.metric==='plays')?r.plays:r.ms;
+  $('#shuffle').hidden=S.layout!=='scatter';
+  let blockW=box.w, blockH=box.h, place;
+
+  const label=(r,i,x,y,s)=>{ ctx.textBaseline='top'; ctx.textAlign='left'; ctx.fillStyle=ink; ctx.font=`600 ${s*0.075}px ${FONT}`;
+    ctx.fillText(fit(`${i+1}  ${r.album}`,s),x,y+s*1.06);
+    if(r.artist){ ctx.fillStyle=muted; ctx.font=`400 ${s*0.065}px ${FONT}`; ctx.fillText(fit(r.artist,s),x,y+s*1.16); } };
+  const badge=(n,x,y,s)=>{ ctx.save(); const bs=s*0.2; ctx.fillStyle='rgba(0,0,0,.55)'; rr(x+s-bs-s*0.05,y+s*0.05,bs,bs,bs/2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font=`800 ${bs*0.55}px ${FONT}`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(n),x+s-bs/2-s*0.05,y+s*0.05+bs*0.53); ctx.restore(); };
+  let seed=S.seed>>>0; const rnd=()=>{ seed=(seed+0x6D2B79F5)>>>0; let t=seed; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; };
 
   if(S.layout==='grid'){
     const cols=5, rows=2, labR=S.labels?0.27:0;
     const s=Math.min(availW/(cols+(cols-1)*gapR), availH/(rows*(1+labR)+(rows-1)*gapR));
     const gap=s*gapR; blockW=cols*s+(cols-1)*gap; blockH=rows*s*(1+labR)+(rows-1)*gap;
-    place=(x0,y0)=>{
-      top.forEach((r,i)=>{ const c=i%cols, rw=Math.floor(i/cols);
-        const x=x0+c*(s+gap), y=y0+rw*(s*(1+labR)+gap);
-        drawTile(r,x,y,s,true);
-        if(S.labels){ ctx.textBaseline='top'; ctx.fillStyle=ink; ctx.font=`600 ${s*0.075}px ${FONT}`;
-          ctx.fillText(fit(`${i+1}  ${r.album}`,s),x,y+s+s*0.06);
-          ctx.fillStyle=muted; ctx.font=`400 ${s*0.065}px ${FONT}`;
-          if(r.artist) ctx.fillText(fit(r.artist,s),x,y+s+s*0.16); }
-      });
-    };
-  } else {
+    place=(x0,y0)=>top.forEach((r,i)=>{ const x=x0+(i%cols)*(s+gap), y=y0+Math.floor(i/cols)*(s*(1+labR)+gap);
+      drawTile(r,x,y,s,true); if(S.labels) label(r,i,x,y,s); });
+  } else if(S.layout==='feature'){
     const labR=S.labels?0.55:0;
     const s=Math.min(availW/(6+4*gapR+1.6*gapR), availH/(3+2*gapR+labR));
     const gap=s*gapR, big=3*s+2*gap, mid=gap*1.6;
@@ -706,24 +734,86 @@ function draw(){
         ctx.fillText(fit(top[0].album,big),x0,y0+big+s*0.1);
         ctx.fillStyle=muted; ctx.font=`400 ${s*0.13}px ${FONT}`;
         if(top[0].artist) ctx.fillText(fit(top[0].artist,big),x0,y0+big+s*0.36); }
-      top.slice(1).forEach((r,i)=>{ const c=i%3, rw=Math.floor(i/3);
-        const x=x0+big+mid+c*(s+gap), y=y0+rw*(s+gap);
-        drawTile(r,x,y,s,true);
-        ctx.save(); const bs=s*0.2; ctx.fillStyle='rgba(0,0,0,.55)'; rr(x+s-bs-s*0.05,y+s*0.05,bs,bs,bs/2); ctx.fill();
-        ctx.fillStyle='#fff'; ctx.font=`800 ${bs*0.55}px ${FONT}`; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(String(i+2),x+s-bs/2-s*0.05,y+s*0.05+bs/2+bs*0.03); ctx.restore();
-      });
+      top.slice(1).forEach((r,i)=>{ const x=x0+big+mid+(i%3)*(s+gap), y=y0+Math.floor(i/3)*(s+gap);
+        drawTile(r,x,y,s,true); badge(i+2,x,y,s); });
+    };
+  } else if(S.layout==='sized'){
+    // area proportional to listening, packed outward from the center
+    const labR=S.labels?0.27:0, gp=0.07, asp=box.w/box.h;
+    const mx=Math.max(1,...top.map(val));
+    const rel=top.map((r,i)=>S.manual?1-i*0.065:Math.max(0.36,Math.sqrt(val(r)/mx)));
+    const rects=[];
+    const hit=(a)=>rects.some(b=>a.x<b.x+b.w+gp&&a.x+a.w+gp>b.x&&a.y<b.y+b.h+gp&&a.y+a.h+gp>b.y);
+    rel.forEach((k,i)=>{ const w=k,h=k*(1+labR);
+      if(!i){ rects.push({x:-w/2,y:-h/2,w,h,i}); return; }
+      for(let t=1;t<20000;t++){ const a=t*0.21, rad=0.0012*t;
+        const c={x:Math.cos(a)*rad*Math.sqrt(asp)-w/2,y:Math.sin(a)*rad/Math.sqrt(asp)-h/2,w,h,i};
+        if(!hit(c)){ rects.push(c); break; } } });
+    const minX=Math.min(...rects.map(r=>r.x)), maxX=Math.max(...rects.map(r=>r.x+r.w));
+    const minY=Math.min(...rects.map(r=>r.y)), maxY=Math.max(...rects.map(r=>r.y+r.h));
+    const sc=Math.min(box.w/(maxX-minX),box.h/(maxY-minY));
+    const ox=box.x+(box.w-(maxX-minX)*sc)/2, oy=box.y+(box.h-(maxY-minY)*sc)/2;
+    place=()=>rects.forEach(rc=>{ const x=ox+(rc.x-minX)*sc, y=oy+(rc.y-minY)*sc, sz=rc.w*sc;
+      drawTile(top[rc.i],x,y,sz,true); if(S.labels) label(top[rc.i],rc.i,x,y,sz); else badge(rc.i+1,x,y,sz); });
+  } else if(S.layout==='scatter'){
+    // tossed on a table: spread-out random positions, slight tilt, #1 on top
+    const labR=S.labels?0.27:0;
+    const s0=Math.sqrt(box.w*box.h*0.36/n)/(1+labR*0.5);
+    const items=[];
+    top.forEach((r,i)=>{ const s=s0*(1.12-i*0.025), h=s*(1+labR);
+      let best=null, bestD=-1;
+      for(let t=0;t<60;t++){ const cx=box.x+s/2+rnd()*(box.w-s), cy=box.y+h/2+rnd()*(box.h-h);
+        const d=items.length?Math.min(...items.map(o=>Math.hypot((o.cx-cx)/box.w*1.6,(o.cy-cy)/box.h))):1;
+        if(d>bestD){ bestD=d; best={cx,cy}; } }
+      items.push({...best,s,h,i,rot:(rnd()-0.5)*0.3}); });
+    place=()=>[...items].reverse().forEach(o=>{ ctx.save(); ctx.translate(o.cx,o.cy); ctx.rotate(o.rot);
+      const x=-o.s/2, y=-o.h/2; drawTile(top[o.i],x,y,o.s,true);
+      if(S.labels) label(top[o.i],o.i,x,y,o.s); else badge(o.i+1,x,y,o.s); ctx.restore(); });
+  } else if(S.layout==='orbit'){
+    // #1 in the middle, the rest circling it
+    const labR=S.labels?0.27:0, k=n-1, cx=box.x+box.w/2, cy=box.y+box.h/2;
+    let s=box.h*0.3, rects=[];
+    for(let it=0;it<80;it++){
+      const th=s*(1+labR), ry=(box.h-th)/2, rx=Math.min((box.w-s)/2,ry*2.1), big=s*1.9, bh=big*(1+labR);
+      rects=[{i:0,x:cx-big/2,y:cy-bh/2,s:big,h:bh}];
+      for(let j=0;j<k;j++){ const a=-Math.PI/2+(j+0.5)*2*Math.PI/k;
+        rects.push({i:j+1,x:cx+Math.cos(a)*rx-s/2,y:cy+Math.sin(a)*ry-th/2,s,h:th}); }
+      const g=s*0.08; let ok=true;
+      for(let m=0;m<rects.length&&ok;m++) for(let q=m+1;q<rects.length;q++){ const A=rects[m],B=rects[q];
+        if(A.x<B.x+B.s+g&&A.x+A.s+g>B.x&&A.y<B.y+B.h+g&&A.y+A.h+g>B.y){ ok=false; break; } }
+      if(ok) break; s*=0.95; }
+    place=()=>rects.forEach(rc=>{ drawTile(top[rc.i],rc.x,rc.y,rc.s,true);
+      if(S.labels) label(top[rc.i],rc.i,rc.x,rc.y,rc.s); else if(rc.i) badge(rc.i+1,rc.x,rc.y,rc.s); });
+  } else {
+    // cascade: a receding stack of records, with the list beside it
+    const listW=S.labels?box.w*0.3:0, areaW=box.w-listW-(S.labels?box.w*0.04:0);
+    const shrink=0.07, step=0.33;
+    let span=0, f=1; for(let i=1;i<n;i++){ span+=f*step; f*=1-shrink; } 
+    const s0=Math.min(areaW/(1+span), box.h*0.92);
+    const used=s0*(1+span), ox=box.x+(S.labels?0:(box.w-used)/2), base=box.y+(box.h+s0)/2;
+    const tiles=[]; let x=ox, sz=s0;
+    for(let i=0;i<n;i++){ tiles.push({i,x,y:base-sz-(s0-sz)*0.55,s:sz}); x+=sz*step; sz*=1-shrink; }
+    place=()=>{
+      [...tiles].reverse().forEach(t=>{ drawTile(top[t.i],t.x,t.y,t.s,true); if(t.i) badge(t.i+1,t.x,t.y,t.s); });
+      if(S.labels){
+        const lx=box.x+box.w-listW, lineH=Math.min(box.h/n, s0*0.2), fs=lineH*0.42, ly=box.y+(box.h-lineH*n)/2;
+        top.forEach((r,i)=>{ const y=ly+i*lineH; ctx.textBaseline='top'; ctx.textAlign='left';
+          ctx.fillStyle=muted; ctx.font=`800 ${fs}px ${FONT}`; ctx.fillText(String(i+1),lx,y);
+          ctx.fillStyle=ink; ctx.font=`600 ${fs}px ${FONT}`; ctx.fillText(fit(r.album,listW-fs*1.8),lx+fs*1.8,y);
+          if(r.artist){ ctx.fillStyle=muted; ctx.font=`400 ${fs*0.8}px ${FONT}`; ctx.fillText(fit(r.artist,listW-fs*1.8),lx+fs*1.8,y+fs*1.15); } });
+      }
     };
   }
 
-  const x0=(W-blockW)/2, y0=(H-(headH+blockH))/2+headH;
+  const x0=box.x+(box.w-blockW)/2, y0=box.y+(box.h-blockH)/2;
   if(S.heading){
+    const hx=(S.layout==='grid'||S.layout==='feature')?x0:box.x, hy=(S.layout==='grid'||S.layout==='feature')?y0:box.y;
     const per=S.manual?S.manualTitle:S.period==='all'?'All time':S.period;
     ctx.textBaseline='alphabetic'; ctx.textAlign='left';
-    ctx.fillStyle=ink; ctx.font=`800 ${headH*0.5}px ${FONT}`; ctx.fillText(per,x0,y0-headH*0.32);
+    ctx.fillStyle=ink; ctx.font=`800 ${headH*0.5}px ${FONT}`; ctx.fillText(per,hx,hy-headH*0.32);
     const pw=ctx.measureText(per).width;
     ctx.fillStyle=muted; ctx.font=`400 ${headH*0.24}px ${FONT}`;
-    ctx.fillText(S.manual?'top albums':S.metric==='plays'?'most played albums':'albums by time listened',x0+pw+headH*0.2,y0-headH*0.32);
+    ctx.fillText(S.manual?'top albums':S.metric==='plays'?'most played albums':'albums by time listened',hx+pw+headH*0.2,hy-headH*0.32);
   }
   place(x0,y0);
 }
@@ -754,9 +844,9 @@ async function saveBlob(blob,name){
     note.textContent='Downloaded '+name+'.';
   }
 }
-function coverThumb(img){ const c=document.createElement('canvas'); c.width=c.height=640; const x=c.getContext('2d');
-  const sc=Math.max(640/img.width,640/img.height); const w=img.width*sc,h=img.height*sc; x.drawImage(img,(640-w)/2,(640-h)/2,w,h);
-  return c.toDataURL('image/jpeg',0.85); }
+function coverThumb(img){ const c=document.createElement('canvas'); const Z=Math.min(1200,img.width,img.height); c.width=c.height=Z; const x=c.getContext('2d'); x.imageSmoothingQuality='high';
+  const sc=Math.max(Z/img.width,Z/img.height); const w=img.width*sc,h=img.height*sc; x.drawImage(img,(Z-w)/2,(Z-h)/2,w,h);
+  return c.toDataURL('image/jpeg',0.9); }
 $('#exportEx').onclick=()=>{
   if(!S.data) return;
   const k=S.metric==='plays'?'plays':'ms';
